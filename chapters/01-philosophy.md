@@ -81,7 +81,7 @@ Here's the key insight: **Skaffold bridges both loops using the same configurati
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    skaffold.yaml                     │
+│                    skaffold.yaml                    │
 │                                                     │
 │  ┌──────────────────┐     ┌──────────────────────┐  │
 │  │   INNER LOOP     │     │    OUTER LOOP        │  │
