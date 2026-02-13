@@ -1,3 +1,6 @@
+---
+layout: home
+---
 # Skaffold Masterclass for Go Developers
 
 > A definitive, multi-chapter deep-dive into Skaffold for Go development on local Kubernetes clusters. From conceptual foundations to advanced DevEx workflows.

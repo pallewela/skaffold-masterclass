@@ -1,0 +1,26 @@
+---
+---
+@import "{{ site.theme }}";
+
+/* Import Iosevka Nerd Font from NerdFonts CDN via jsDelivr */
+@import url('https://www.nerdfonts.com/assets/css/webfont.css');
+
+/* Custom Font Overrides */
+:root {
+  --font-family: "Iosevka NF", "Iosevka", monospace;
+}
+
+body {
+  font-family: var(--font-family) !important;
+}
+
+/* Ensure code blocks also use the Nerd Font for those sweet icons */
+code, pre {
+  font-family: var(--font-family) !important;
+  font-variant-ligatures: normal;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-family);
+  font-weight: 700;
+}
