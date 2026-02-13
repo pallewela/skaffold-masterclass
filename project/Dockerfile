@@ -1,15 +1,24 @@
+# syntax=docker/dockerfile:1
+
 # ---- Build Stage ----
 FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
-# Cache dependencies
+# Cache dependencies (BuildKit cache mounts for Go module + build cache)
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-# Build the binary
+# Build the binary with all production optimisations
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/server .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build \
+      -ldflags="-s -w" \
+      -trimpath \
+      -o /app/server .
 
 # ---- Runtime Stage ----
 FROM gcr.io/distroless/static-debian12

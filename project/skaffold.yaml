@@ -3,21 +3,83 @@ kind: Config
 metadata:
   name: hello-app
 
+# ── Build ──
 build:
   artifacts:
     - image: hello-app
       docker:
         dockerfile: Dockerfile
+      dependencies:
+        paths:
+          - "**/*.go"
+          - "go.mod"
+          - "go.sum"
+        ignore:
+          - "**/*_test.go"
+  tagPolicy:
+    inputDigest: {}
   local:
     push: false
+    useBuildkit: true
 
+# ── Deploy ──
 deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 120
   kubectl:
     manifests:
       - k8s/*.yaml
 
+# ── Port Forwards ──
 portForward:
   - resourceType: service
     resourceName: hello-app
     port: 8080
     localPort: 8080
+
+# ── Profiles ──
+profiles:
+
+  # Development: hot reload with file sync
+  - name: dev
+    build:
+      artifacts:
+        - image: hello-app
+          docker:
+            dockerfile: Dockerfile.dev
+          sync:
+            manual:
+              - src: "**/*.go"
+                dest: /app
+    activation:
+      - command: dev
+
+  # Debug: Delve-instrumented build
+  - name: debug
+    build:
+      artifacts:
+        - image: hello-app
+          docker:
+            dockerfile: Dockerfile.debug
+    activation:
+      - command: debug
+
+  # Staging: push to registry, use Kustomize
+  - name: staging
+    build:
+      local:
+        push: true
+      tagPolicy:
+        gitCommit:
+          variant: AbbrevCommitSha
+
+  # Production: push to registry
+  - name: production
+    build:
+      local:
+        push: true
+      tagPolicy:
+        gitCommit:
+          variant: AbbrevCommitSha
+    activation:
+      - kubeContext: gke_*_prod*
