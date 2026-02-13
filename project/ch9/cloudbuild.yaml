@@ -1,0 +1,35 @@
+# cloudbuild.yaml — Google Cloud Build config for hello-app.
+# Demonstrates: build → deploy using Skaffold on Cloud Build.
+# Requires: Skaffold builder image in your project or use gcr.io/k8s-skaffold/skaffold.
+
+steps:
+  # Step 1: Run tests
+  - name: "golang:1.23-alpine"
+    entrypoint: "go"
+    args: ["test", "./..."]
+
+  # Step 2: Skaffold build
+  - name: "gcr.io/k8s-skaffold/skaffold"
+    args:
+      - "build"
+      - "--file-output=/workspace/build.json"
+      - "--default-repo=${_ARTIFACT_REGISTRY}"
+
+  # Step 3: Skaffold deploy (staging)
+  - name: "gcr.io/k8s-skaffold/skaffold"
+    args:
+      - "deploy"
+      - "--build-artifacts=/workspace/build.json"
+      - "--profile=staging"
+
+  # Step 4: Skaffold verify
+  - name: "gcr.io/k8s-skaffold/skaffold"
+    args:
+      - "verify"
+      - "--build-artifacts=/workspace/build.json"
+
+substitutions:
+  _ARTIFACT_REGISTRY: "us-central1-docker.pkg.dev/${PROJECT_ID}/hello-app"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

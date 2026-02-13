@@ -1,0 +1,21 @@
+replicaCount: 1
+
+image:
+  repository: hello-app
+  tag: ""                          # Skaffold injects this
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 32Mi
+
+env:
+  PORT: "8080"
+  APP_ENV: "development"

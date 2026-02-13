@@ -1,0 +1,38 @@
+# Dockerfile.debug — Debug image with Delve debugger.
+# Builds WITHOUT optimisations so breakpoints work correctly.
+# Delve runs in headless mode, waiting for an IDE to connect.
+
+FROM golang:1.23-alpine AS builder
+
+# Install Delve
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
+
+WORKDIR /app
+
+COPY go.mod ./
+RUN go mod download
+
+COPY . .
+
+# Build WITHOUT -ldflags="-s -w" and WITH -gcflags for debugging
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build \
+      -gcflags="all=-N -l" \
+      -o /app/server .
+
+FROM golang:1.23-alpine
+
+# Copy Delve from builder
+COPY --from=builder /go/bin/dlv /usr/local/bin/dlv
+COPY --from=builder /app/server /server
+
+EXPOSE 8080  56268
+
+# Delve: headless, listen on 56268, run the server binary
+ENTRYPOINT ["dlv", "exec", "/server", \
+  "--headless", \
+  "--listen=:56268", \
+  "--api-version=2", \
+  "--accept-multiclient", \
+  "--continue", \
+  "--log"]

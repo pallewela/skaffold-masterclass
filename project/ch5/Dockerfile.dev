@@ -1,0 +1,26 @@
+# Dockerfile.dev — Development image with hot-reloading.
+# Uses CompileDaemon to watch for file changes and rebuild automatically.
+# Paired with Skaffold's file sync to push .go files into the container.
+
+FROM golang:1.23-alpine
+
+# Install CompileDaemon for hot-reloading
+RUN go install github.com/githubnemo/CompileDaemon@latest
+
+WORKDIR /app
+
+# Copy module files and download dependencies
+COPY go.mod ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+EXPOSE 8080
+
+# CompileDaemon watches for changes in /app and rebuilds/restarts
+ENTRYPOINT ["CompileDaemon", \
+  "-directory=/app", \
+  "-build=go build -o /app/server .", \
+  "-command=/app/server", \
+  "-polling"]

@@ -1,0 +1,23 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: hello-app
+
+build:
+  artifacts:
+    - image: hello-app
+      docker:
+        dockerfile: Dockerfile
+  local:
+    push: false                # Don't push to a registry; Kind loads images directly
+
+deploy:
+  kubectl:
+    manifests:
+      - k8s/*.yaml
+
+portForward:
+  - resourceType: service
+    resourceName: hello-app
+    port: 8080
+    localPort: 8080

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-app-worker
+  labels:
+    app: hello-app-worker
+    component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-app-worker
+  template:
+    metadata:
+      labels:
+        app: hello-app-worker
+        component: worker
+    spec:
+      containers:
+        - name: worker
+          image: hello-app-worker
+          ports:
+            - containerPort: 8081
+              name: health
+          envFrom:
+            - configMapRef:
+                name: hello-app-config
+          env:
+            - name: REDIS_ADDR
+              value: "redis:6379"
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "16Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 5

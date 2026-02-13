@@ -1,0 +1,131 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: hello-app
+
+# ── Build ──
+build:
+  artifacts:
+    - image: hello-app
+      docker:
+        dockerfile: Dockerfile
+      dependencies:
+        paths:
+          - "**/*.go"
+          - "go.mod"
+          - "Dockerfile"
+        ignore:
+          - "**/*_test.go"
+  tagPolicy:
+    inputDigest: {}
+  local:
+    push: false
+    useBuildkit: true
+    concurrency: 0
+
+# ── Deploy ──
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 120
+  kubectl:
+    manifests:
+      - k8s/base/*.yaml
+    hooks:
+      before:
+        - host:
+            command: ["sh", "-c", "echo '🔄 Running pre-deploy migration...' && sh scripts/migrate.sh"]
+            os: [linux, darwin]
+      after:
+        - host:
+            command: ["sh", "-c", "echo '🌱 Running post-deploy seed...' && sh scripts/seed.sh"]
+            os: [linux, darwin]
+
+# ── Verify ──
+# Post-deploy verification: runs after deploy to confirm the app is healthy.
+# Use with: skaffold verify
+verify:
+  - name: health-check
+    container:
+      name: health-checker
+      image: curlimages/curl:8.5.0
+      command: ["sh", "-c"]
+      args:
+        - |
+          echo "⏳ Waiting for hello-app to be ready..."
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://hello-app:8080/health)
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Health check passed (HTTP $STATUS)"
+            exit 0
+          else
+            echo "❌ Health check failed (HTTP $STATUS)"
+            exit 1
+          fi
+
+# ── Port Forwards ──
+portForward:
+  - resourceType: service
+    resourceName: hello-app
+    port: 8080
+    localPort: 8080
+  - resourceType: service
+    resourceName: hello-app
+    port: 6060
+    localPort: 6060
+
+# ── Profiles ──
+profiles:
+
+  # Development: hot reload with file sync
+  - name: dev
+    build:
+      artifacts:
+        - image: hello-app
+          docker:
+            dockerfile: Dockerfile.dev
+          sync:
+            manual:
+              - src: "**/*.go"
+                dest: /app
+    activation:
+      - command: dev
+
+  # Debug: Delve-instrumented builds
+  - name: debug
+    build:
+      artifacts:
+        - image: hello-app
+          docker:
+            dockerfile: Dockerfile.debug
+    activation:
+      - command: debug
+
+  # Staging: push to registry + Kustomize dev overlay
+  - name: staging
+    build:
+      local:
+        push: true
+      tagPolicy:
+        gitCommit:
+          variant: AbbrevCommitSha
+    deploy:
+      kustomize:
+        paths:
+          - k8s/overlays/dev
+    activation:
+      - env: SKAFFOLD_ENV=staging
+
+  # Production: push to registry + Kustomize prod overlay
+  - name: production
+    build:
+      local:
+        push: true
+      tagPolicy:
+        gitCommit:
+          variant: AbbrevCommitSha
+    deploy:
+      kustomize:
+        paths:
+          - k8s/overlays/prod
+    activation:
+      - kubeContext: gke_*_prod*

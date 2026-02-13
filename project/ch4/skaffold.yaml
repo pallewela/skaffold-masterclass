@@ -1,0 +1,38 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: hello-app
+
+build:
+  artifacts:
+    - image: hello-app
+      docker:
+        dockerfile: Dockerfile
+        noCache: false
+      dependencies:
+        paths:
+          - "**/*.go"
+          - "go.mod"
+          - "Dockerfile"
+        ignore:
+          - "**/*_test.go"
+  tagPolicy:
+    inputDigest: {}
+  local:
+    push: false
+    useBuildkit: true
+    concurrency: 0
+
+# ── Deploy ──
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 120
+  kubectl:
+    manifests:
+      - k8s/base/*.yaml
+
+portForward:
+  - resourceType: service
+    resourceName: hello-app
+    port: 8080
+    localPort: 8080

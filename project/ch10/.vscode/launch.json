@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Skaffold Debug: API",
+      "type": "go",
+      "request": "attach",
+      "mode": "remote",
+      "host": "localhost",
+      "port": 56268,
+      "substitutePath": [
+        {
+          "from": "${workspaceFolder}",
+          "to": "/app"
+        }
+      ]
+    },
+    {
+      "name": "Skaffold Debug: Worker",
+      "type": "go",
+      "request": "attach",
+      "mode": "remote",
+      "host": "localhost",
+      "port": 56269,
+      "substitutePath": [
+        {
+          "from": "${workspaceFolder}/worker",
+          "to": "/app"
+        }
+      ]
+    }
+  ]
+}

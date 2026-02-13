@@ -1,0 +1,19 @@
+# Dockerfile.dev — Development image with hot-reloading.
+FROM golang:1.23-alpine
+
+RUN go install github.com/githubnemo/CompileDaemon@latest
+
+WORKDIR /app
+
+COPY go.mod ./
+RUN go mod download
+
+COPY . .
+
+EXPOSE 8080
+
+ENTRYPOINT ["CompileDaemon", \
+  "-directory=/app", \
+  "-build=go build -o /app/server .", \
+  "-command=/app/server", \
+  "-polling"]
